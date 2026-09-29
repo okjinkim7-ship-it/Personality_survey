@@ -506,12 +506,6 @@
   <button class="tab active" onclick="showScreen('welcome')" id="tabHome">
     <span class="tab-icon">🏠</span>홈
   </button>
-  <button class="tab" onclick="showScreen('quiz')" id="tabQuiz">
-    <span class="tab-icon">📝</span>테스트
-  </button>
-  <button class="tab" onclick="showScreen('result')" id="tabResult">
-    <span class="tab-icon">🎉</span>결과
-  </button>
   <button class="tab" onclick="showScreen('group')" id="tabGroup">
     <span class="tab-icon">👨‍👩‍👧‍👦</span>가족보드
   </button>
@@ -612,7 +606,7 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  const tabMap = { welcome: 'tabHome', quiz: 'tabQuiz', result: 'tabResult', group: 'tabGroup' };
+  const tabMap = { welcome: 'tabHome', quiz: 'tabHome', result: 'tabHome', group: 'tabGroup' };
   if (tabMap[id]) document.getElementById(tabMap[id]).classList.add('active');
   if (id === 'group') renderBoard();
   window.scrollTo(0, 0);
