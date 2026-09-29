@@ -304,6 +304,53 @@
   .compat-score { font-size: 2.5rem; font-weight: 800; }
   .compat-detail { font-size: 0.9rem; color: #636e72; line-height: 1.6; margin-top: 8px; }
 
+  /* Same type group */
+  .type-group { margin-bottom: 16px; }
+  .type-group-header {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 1rem; font-weight: 700; margin-bottom: 8px;
+  }
+  .type-group-members {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .type-group-chip {
+    background: linear-gradient(135deg, #fff9f0, #ffe8e0);
+    padding: 6px 14px; border-radius: 20px;
+    font-size: 0.85rem; font-weight: 600;
+  }
+
+  /* Unique type */
+  .unique-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid #f0f0f0;
+  }
+  .unique-item:last-child { border-bottom: none; }
+  .unique-emoji { font-size: 1.8rem; }
+  .unique-info { flex: 1; }
+  .unique-name { font-weight: 700; font-size: 0.95rem; }
+  .unique-desc { font-size: 0.8rem; color: #636e72; }
+
+  /* Compat ranking */
+  .compat-rank-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0; border-bottom: 1px solid #f0f0f0;
+  }
+  .compat-rank-item:last-child { border-bottom: none; }
+  .rank-badge {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem; font-weight: 800; color: white; flex-shrink: 0;
+  }
+  .rank-1 { background: linear-gradient(135deg, #f9ca24, #f0932b); }
+  .rank-2 { background: linear-gradient(135deg, #dfe6e9, #b2bec3); }
+  .rank-3 { background: linear-gradient(135deg, #e17055, #d63031); }
+  .rank-best { background: linear-gradient(135deg, #fd79a8, #e84393); }
+  .rank-worst { background: linear-gradient(135deg, #74b9ff, #0984e3); }
+  .rank-info { flex: 1; }
+  .rank-names { font-weight: 700; font-size: 0.95rem; }
+  .rank-comment { font-size: 0.8rem; color: #636e72; margin-top: 2px; }
+  .rank-score { font-weight: 800; font-size: 1.1rem; color: var(--primary); }
+
   @media (max-width: 380px) {
     .scale-btn { width: 44px; height: 44px; font-size: 0.95rem; }
     .scale-btns { gap: 8px; }
@@ -381,15 +428,33 @@
 
   <div class="family-grid" id="familyGrid"></div>
 
+  <!-- 같은 유형 가족 묶기 -->
+  <div class="stats-card" id="sameTypeSection" style="display:none;">
+    <h3>🐾 같은 유형 가족</h3>
+    <div id="sameTypeContent"></div>
+  </div>
+
+  <!-- 유일한 유형 -->
+  <div class="stats-card" id="uniqueTypeSection" style="display:none;">
+    <h3>⭐ 우리 가족의 특별한 존재</h3>
+    <div id="uniqueTypeContent"></div>
+  </div>
+
+  <!-- 베스트 / 워스트 궁합 -->
+  <div class="stats-card" id="autoCompatSection" style="display:none;">
+    <h3>🏆 궁합 랭킹</h3>
+    <div id="autoCompatContent"></div>
+  </div>
+
   <div class="stats-card" id="familyStats" style="display:none;">
     <h3>📊 우리 가족 성향 분포</h3>
     <div id="statsContent"></div>
   </div>
 
-  <!-- Compatibility -->
+  <!-- 궁합 직접 보기 -->
   <div class="compat-section" id="compatSection" style="display:none;">
     <div class="stats-card">
-      <h3>💕 궁합 보기</h3>
+      <h3>💕 궁합 직접 보기</h3>
       <div style="display:flex; gap:8px; justify-content:center; align-items:center; flex-wrap:wrap;">
         <select class="compat-select" id="compat1"></select>
         <span style="font-size:1.2rem;">💕</span>
@@ -799,14 +864,20 @@ function renderBoard() {
   const grid = document.getElementById('familyGrid');
   const stats = document.getElementById('familyStats');
   const compat = document.getElementById('compatSection');
+  const sameType = document.getElementById('sameTypeSection');
+  const uniqueType = document.getElementById('uniqueTypeSection');
+  const autoCompat = document.getElementById('autoCompatSection');
+
+  const hideSections = () => {
+    [stats, compat, sameType, uniqueType, autoCompat].forEach(el => el.style.display = 'none');
+  };
 
   if (members.length === 0) {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
       <div class="emoji-big">🐾</div>
       <p>아직 등록된 가족이 없어요.<br>테스트를 하거나 직접 추가해보세요!</p>
     </div>`;
-    stats.style.display = 'none';
-    compat.style.display = 'none';
+    hideSections();
     return;
   }
 
@@ -819,15 +890,16 @@ function renderBoard() {
     </div>
   `).join('');
 
-  // Stats
   if (members.length >= 2) {
+    renderSameTypes(members);
+    renderUniqueTypes(members);
+    renderAutoCompat(members);
     stats.style.display = 'block';
     renderStats(members);
     compat.style.display = 'block';
     renderCompatSelects(members);
   } else {
-    stats.style.display = 'none';
-    compat.style.display = 'none';
+    hideSections();
   }
 }
 
@@ -864,6 +936,51 @@ function renderCompatSelects(members) {
   document.getElementById('compatResult').classList.remove('active');
 }
 
+// ── 궁합 계산 공통 함수 ──
+const compatComments = {
+  similar: [
+    ["에너지", "둘 다 비슷한 방식으로 에너지를 충전해요! 함께 있을 때 편안한 사이 💛"],
+    ["스타일", "여행 스타일이 척척 맞아요! 같이 여행하면 환상의 호흡 🧳"],
+    ["판단", "생각하는 방식이 통해요! 의견이 잘 맞아 대화가 즐거운 사이 🗣️"],
+    ["활동", "활동 템포가 딱 맞아요! 같이 움직이면 지치지 않는 조합 🏃"]
+  ],
+  different: [
+    ["에너지", "한 명은 충전 중, 한 명은 파티 중! 😄 서로의 리듬을 존중하면 최고의 밸런스!"],
+    ["스타일", "계획 vs 즉흥의 만남! 🎲 한 명이 길을 잡고 한 명이 재미를 더해요!"],
+    ["판단", "머리 vs 마음의 환상 콤비! 🧠💗 서로 놓치는 부분을 딱 채워줘요!"],
+    ["활동", "움직이는 사람 + 쉬는 사람 = 완벽한 여행! 🏖️ 번갈아 리드해봐요!"]
+  ],
+  overall: {
+    90: ["소울메이트급! 🥹", "말 안 해도 통하는 사이! 전생에 한 가족이었던 게 아닐까요?"],
+    80: ["찰떡궁합! 💖", "함께 있으면 편하고 즐거운 천생연분 조합이에요!"],
+    70: ["좋은 궁합! 💕", "서로 잘 맞는 부분이 많아요. 함께하면 시너지가 납니다!"],
+    60: ["훈훈한 사이 😊", "비슷한 점도 다른 점도 있어서 대화거리가 끊이지 않아요!"],
+    50: ["재미있는 조합! 🤝", "다른 점이 있어서 오히려 서로에게 배울 점이 많아요!"],
+    40: ["정반대 매력! 🌈", "다르기 때문에 특별한 조합! 서로의 세계를 넓혀줘요!"],
+    0:  ["극과 극은 통한다! ⚡", "완전 다른 스타일이지만, 그래서 함께하면 더 완벽해져요!"]
+  }
+};
+
+function calcCompatScore(m1, m2) {
+  if (!m1.axisPercent || !m2.axisPercent) return null;
+  let totalDiff = 0;
+  const axisDiffs = [];
+  m1.axisPercent.forEach((p1, i) => {
+    const diff = Math.abs(p1 - m2.axisPercent[i]);
+    totalDiff += diff;
+    axisDiffs.push(diff);
+  });
+  return { score: Math.max(0, Math.round(100 - (totalDiff / 4))), axisDiffs };
+}
+
+function getOverallComment(score) {
+  const thresholds = [90, 80, 70, 60, 50, 40, 0];
+  for (const t of thresholds) {
+    if (score >= t) return compatComments.overall[t];
+  }
+  return compatComments.overall[0];
+}
+
 function showCompat() {
   const members = getMembers();
   const i1 = parseInt(document.getElementById('compat1').value);
@@ -871,38 +988,164 @@ function showCompat() {
   if (i1 === i2) { showToast('다른 사람을 선택해주세요!'); return; }
 
   const m1 = members[i1], m2 = members[i2];
-  if (!m1.axisPercent || !m2.axisPercent) { showToast('점수 데이터가 없습니다.'); return; }
+  const result = calcCompatScore(m1, m2);
+  if (!result) { showToast('점수 데이터가 없습니다.'); return; }
 
-  // Calculate compatibility: inverse of average difference
-  let totalDiff = 0;
-  const details = [];
-  const traitWords = [
-    ["에너지 충전", "둘 다 비슷한 방식으로 에너지를 충전해요!", "에너지 충전 방식이 달라요. 서로의 시간을 존중해주세요!"],
-    ["여행 스타일", "여행 계획에 대한 생각이 비슷해요!", "한 명은 계획파, 한 명은 즉흥파! 적절한 균형을 맞춰봐요."],
-    ["판단 기준", "결정을 내리는 방식이 비슷해요!", "감성과 이성의 조합! 서로의 관점을 들으면 더 좋은 결정을 할 수 있어요."],
-    ["활동 선호", "활동 템포가 잘 맞아요!", "한 명은 활동파, 한 명은 여유파! 번갈아 리드하면 완벽한 조합!"]
-  ];
-
-  m1.axisPercent.forEach((p1, i) => {
-    const diff = Math.abs(p1 - m2.axisPercent[i]);
-    totalDiff += diff;
-    if (diff <= 25) details.push(`✅ ${traitWords[i][1]}`);
-    else details.push(`💡 ${traitWords[i][2]}`);
+  const { score, axisDiffs } = result;
+  const details = axisDiffs.map((diff, i) => {
+    const comments = diff <= 25 ? compatComments.similar[i] : compatComments.different[i];
+    const icon = diff <= 25 ? '✅' : '💡';
+    return `${icon} <strong>${comments[0]}</strong>: ${comments[1]}`;
   });
 
-  const score = Math.max(0, Math.round(100 - (totalDiff / 4)));
+  const [title, comment] = getOverallComment(score);
 
-  let emoji = '💕';
-  if (score >= 80) emoji = '💖';
-  else if (score >= 60) emoji = '💕';
-  else if (score >= 40) emoji = '🤝';
-  else emoji = '🌈';
-
-  document.getElementById('compatScore').textContent = `${emoji} ${score}%`;
+  document.getElementById('compatScore').innerHTML = `${title}<br><span style="font-size:3rem;">${score}%</span>`;
   document.getElementById('compatDetail').innerHTML =
-    `<strong>${m1.name}</strong> ${m1.emoji} × <strong>${m2.name}</strong> ${m2.emoji}<br><br>` +
-    details.join('<br>');
+    `<strong>${m1.name}</strong> ${m1.emoji} × <strong>${m2.name}</strong> ${m2.emoji}<br>` +
+    `<p style="margin:8px 0;color:#636e72;">${comment}</p>` +
+    `<div style="text-align:left;margin-top:12px;">${details.join('<br><br>')}</div>`;
   document.getElementById('compatResult').classList.add('active');
+}
+
+// ── 같은 유형 가족 묶기 ──
+function renderSameTypes(members) {
+  const section = document.getElementById('sameTypeSection');
+  const groups = {};
+  members.forEach(m => {
+    if (!groups[m.code]) groups[m.code] = [];
+    groups[m.code].push(m);
+  });
+
+  const sameGroups = Object.entries(groups).filter(([_, arr]) => arr.length >= 2);
+  if (sameGroups.length === 0) { section.style.display = 'none'; return; }
+
+  section.style.display = 'block';
+  const html = sameGroups.map(([code, arr]) => {
+    const animal = animalTypes[code];
+    return `
+      <div class="type-group">
+        <div class="type-group-header">
+          <span style="font-size:1.5rem;">${animal.emoji}</span>
+          <span>${animal.name} (${code})</span>
+          <span style="color:var(--primary);font-size:0.85rem;">${arr.length}명</span>
+        </div>
+        <div class="type-group-members">
+          ${arr.map(m => `<span class="type-group-chip">${m.name}</span>`).join('')}
+        </div>
+        <p style="font-size:0.82rem;color:#636e72;margin-top:6px;">
+          ${getGroupComment(arr)}
+        </p>
+      </div>`;
+  }).join('');
+
+  document.getElementById('sameTypeContent').innerHTML = html;
+}
+
+function getGroupComment(arr) {
+  const names = arr.map(m => m.name);
+  if (names.length === 2) return `${names[0]}님과 ${names[1]}님은 같은 유형! 서로 가장 잘 이해하는 사이예요 🤜🤛`;
+  return `${names.join(', ')} — 무려 ${names.length}명이 같은 유형! 통하는 게 많을 수밖에 없는 팀이에요! 🎉`;
+}
+
+// ── 유일한 유형 ──
+function renderUniqueTypes(members) {
+  const section = document.getElementById('uniqueTypeSection');
+  const groups = {};
+  members.forEach(m => {
+    if (!groups[m.code]) groups[m.code] = [];
+    groups[m.code].push(m);
+  });
+
+  const uniques = Object.entries(groups)
+    .filter(([_, arr]) => arr.length === 1)
+    .map(([code, arr]) => arr[0]);
+
+  if (uniques.length === 0) { section.style.display = 'none'; return; }
+
+  section.style.display = 'block';
+  const uniqueMessages = [
+    "우리 가족에서 유일한 유형! 특별한 시각으로 가족에 새로운 바람을 불어넣는 존재예요 ✨",
+    "이 유형은 오직 한 명! 가족 안에서 대체 불가능한 특별한 역할을 해요 🌟",
+    "우리 가족의 히든카드! 다른 누구도 가지지 못한 독보적인 매력의 소유자 💎",
+    "가족 중 유일무이한 존재! 이 사람이 없으면 가족 퍼즐이 완성되지 않아요 🧩",
+    "한 명뿐인 특별한 유형! 가족에게 다양성과 새로운 관점을 선물하는 사람 🎁"
+  ];
+
+  const html = uniques.map((m, i) => {
+    const animal = animalTypes[m.code];
+    return `
+      <div class="unique-item">
+        <div class="unique-emoji">${animal.emoji}</div>
+        <div class="unique-info">
+          <div class="unique-name">${m.name} — ${animal.name}</div>
+          <div class="unique-desc">${uniqueMessages[i % uniqueMessages.length]}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('uniqueTypeContent').innerHTML = html;
+}
+
+// ── 베스트 / 워스트 궁합 자동 계산 ──
+function renderAutoCompat(members) {
+  const section = document.getElementById('autoCompatSection');
+  const validMembers = members.filter(m => m.axisPercent && m.axisPercent.length === 4);
+  if (validMembers.length < 2) { section.style.display = 'none'; return; }
+
+  // 모든 조합 계산
+  const pairs = [];
+  for (let i = 0; i < validMembers.length; i++) {
+    for (let j = i + 1; j < validMembers.length; j++) {
+      const result = calcCompatScore(validMembers[i], validMembers[j]);
+      if (result) {
+        pairs.push({ m1: validMembers[i], m2: validMembers[j], ...result });
+      }
+    }
+  }
+
+  if (pairs.length === 0) { section.style.display = 'none'; return; }
+
+  pairs.sort((a, b) => b.score - a.score);
+
+  section.style.display = 'block';
+
+  // 상위 3 + 하위 1
+  const best3 = pairs.slice(0, 3);
+  const worst1 = pairs[pairs.length - 1];
+
+  let html = '<p style="font-size:0.85rem;color:#636e72;margin-bottom:12px;">우리 가족 궁합 TOP 3와 반전 매력 조합!</p>';
+
+  best3.forEach((p, idx) => {
+    const [title] = getOverallComment(p.score);
+    html += `
+      <div class="compat-rank-item">
+        <div class="rank-badge rank-${idx + 1}">${idx + 1}</div>
+        <div class="rank-info">
+          <div class="rank-names">${p.m1.name} ${p.m1.emoji} × ${p.m2.name} ${p.m2.emoji}</div>
+          <div class="rank-comment">${title}</div>
+        </div>
+        <div class="rank-score">${p.score}%</div>
+      </div>`;
+  });
+
+  // 워스트 (반전 매력)
+  if (worst1 && worst1 !== best3[best3.length - 1]) {
+    html += `
+      <div style="margin-top:16px;padding-top:12px;border-top:2px dashed #dfe6e9;">
+        <p style="font-size:0.9rem;font-weight:700;margin-bottom:8px;">🌈 반전 매력 조합</p>
+        <div class="compat-rank-item">
+          <div class="rank-badge rank-worst">!</div>
+          <div class="rank-info">
+            <div class="rank-names">${worst1.m1.name} ${worst1.m1.emoji} × ${worst1.m2.name} ${worst1.m2.emoji}</div>
+            <div class="rank-comment">극과 극은 통한다! 가장 다른 만큼 서로에게 가장 많이 배울 수 있는 조합 ⚡</div>
+          </div>
+          <div class="rank-score">${worst1.score}%</div>
+        </div>
+      </div>`;
+  }
+
+  document.getElementById('autoCompatContent').innerHTML = html;
 }
 
 // ══════════════════════════════════════
