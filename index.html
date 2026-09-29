@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🐾 우리 가족 동물 유형 테스트</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --primary: #FF6B6B;
+    --secondary: #4ECDC4;
+    --accent: #FFE66D;
+    --bg: #FFF9F0;
+    --text: #2D3436;
+    --card: #FFFFFF;
+    --shadow: 0 4px 20px rgba(0,0,0,0.08);
+    --radius: 16px;
+  }
+
+  body {
+    font-family: -apple-system, 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  /* ── Screens ── */
+  .screen { display: none; min-height: 100dvh; padding: 20px; }
+  .screen.active { display: flex; flex-direction: column; align-items: center; }
+
+  /* ── Welcome ── */
+  #welcome { justify-content: center; text-align: center; gap: 24px; }
+  #welcome h1 { font-size: 2rem; line-height: 1.3; }
+  #welcome .emoji-big { font-size: 4rem; }
+  #welcome p { font-size: 1.05rem; color: #636e72; line-height: 1.6; }
+
+  .btn {
+    display: inline-block;
+    padding: 16px 48px;
+    border: none;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: white;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-primary { background: linear-gradient(135deg, var(--primary), #ee5a24); }
+  .btn-secondary { background: linear-gradient(135deg, var(--secondary), #00b894); }
+  .btn-small { padding: 10px 24px; font-size: 0.9rem; }
+
+  /* ── Quiz ── */
+  #quiz { justify-content: flex-start; padding-top: 40px; }
+
+  .progress-bar {
+    width: 100%; max-width: 500px;
+    height: 8px; background: #dfe6e9; border-radius: 4px;
+    margin-bottom: 12px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary));
+    border-radius: 4px; transition: width 0.4s ease;
+  }
+  .progress-text {
+    font-size: 0.85rem; color: #b2bec3; margin-bottom: 32px;
+  }
+
+  .question-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 32px 24px;
+    width: 100%; max-width: 500px;
+    text-align: center;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  .q-number { font-size: 0.85rem; color: var(--primary); font-weight: 700; margin-bottom: 8px; }
+  .q-text { font-size: 1.15rem; font-weight: 600; margin-bottom: 28px; line-height: 1.5; }
+
+  .scale-labels {
+    display: flex; justify-content: space-between;
+    font-size: 0.82rem; color: #636e72; margin-bottom: 12px;
+    max-width: 360px; margin-left: auto; margin-right: auto;
+  }
+  .scale-label { max-width: 120px; line-height: 1.3; }
+  .scale-label.left { text-align: left; }
+  .scale-label.right { text-align: right; }
+
+  .scale-btns {
+    display: flex; justify-content: center; gap: 12px; margin-bottom: 8px;
+  }
+  .scale-btn {
+    width: 52px; height: 52px;
+    border-radius: 50%; border: 2.5px solid #dfe6e9;
+    background: white; font-size: 1.05rem; font-weight: 700;
+    cursor: pointer; transition: all 0.2s; color: #636e72;
+  }
+  .scale-btn:hover { border-color: var(--secondary); color: var(--secondary); }
+  .scale-btn.selected {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-color: transparent; color: white; transform: scale(1.1);
+  }
+
+  .scale-desc {
+    display: flex; justify-content: space-between;
+    font-size: 0.7rem; color: #b2bec3;
+    max-width: 320px; margin: 0 auto;
+  }
+
+  .nav-btns { display: flex; gap: 12px; margin-top: 24px; }
+
+  /* ── Result ── */
+  #result { justify-content: flex-start; padding-top: 32px; gap: 20px; }
+
+  .result-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 32px 24px;
+    width: 100%; max-width: 500px;
+    text-align: center;
+    animation: fadeIn 0.5s ease;
+  }
+
+  .animal-emoji { font-size: 5rem; margin-bottom: 8px; }
+  .animal-name { font-size: 1.6rem; font-weight: 800; margin-bottom: 4px; }
+  .type-code {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white; padding: 4px 16px; border-radius: 20px;
+    font-size: 0.85rem; font-weight: 700; margin-bottom: 16px;
+  }
+  .animal-desc { font-size: 0.95rem; color: #636e72; line-height: 1.7; margin-bottom: 24px; }
+
+  .axis-bar { margin-bottom: 16px; text-align: left; }
+  .axis-labels { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px; }
+  .axis-label { font-weight: 600; }
+  .axis-label.active-trait { color: var(--primary); }
+  .axis-track {
+    height: 10px; background: #eee; border-radius: 5px;
+    position: relative; overflow: hidden;
+  }
+  .axis-fill {
+    height: 100%; border-radius: 5px;
+    background: linear-gradient(90deg, var(--secondary), var(--primary));
+    transition: width 1s ease;
+  }
+  .axis-pct {
+    font-size: 0.75rem; color: #b2bec3; text-align: center; margin-top: 2px;
+  }
+
+  /* Name input */
+  .name-section { margin-top: 12px; }
+  .name-input {
+    padding: 14px 20px; border: 2px solid #dfe6e9; border-radius: 12px;
+    font-size: 1rem; width: 100%; max-width: 280px; text-align: center;
+    outline: none; transition: border-color 0.2s;
+  }
+  .name-input:focus { border-color: var(--secondary); }
+  .name-input::placeholder { color: #b2bec3; }
+
+  .save-msg {
+    margin-top: 8px; font-size: 0.85rem; color: var(--secondary);
+    font-weight: 600; min-height: 20px;
+  }
+
+  /* ── Group Board ── */
+  #group { padding-top: 32px; }
+  #group h2 { font-size: 1.5rem; margin-bottom: 4px; }
+  #group .subtitle { font-size: 0.9rem; color: #b2bec3; margin-bottom: 20px; }
+
+  .board-actions { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; }
+
+  .family-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px; width: 100%; max-width: 640px; margin-bottom: 24px;
+  }
+  .member-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px 12px;
+    text-align: center;
+    animation: fadeIn 0.3s ease;
+  }
+  .member-emoji { font-size: 2.5rem; }
+  .member-name { font-size: 0.95rem; font-weight: 700; margin: 4px 0 2px; }
+  .member-animal { font-size: 0.8rem; color: #636e72; }
+  .member-code { font-size: 0.7rem; color: var(--primary); font-weight: 600; }
+
+  /* Stats */
+  .stats-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px;
+    width: 100%; max-width: 640px;
+    margin-bottom: 20px;
+  }
+  .stats-card h3 { font-size: 1.1rem; margin-bottom: 16px; }
+  .stat-row { display: flex; align-items: center; margin-bottom: 12px; }
+  .stat-label { width: 80px; font-size: 0.8rem; font-weight: 600; }
+  .stat-track { flex: 1; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
+  .stat-fill-left {
+    height: 100%; background: var(--secondary); border-radius: 4px;
+    float: right; transition: width 0.8s;
+  }
+  .stat-fill-right {
+    height: 100%; background: var(--primary); border-radius: 4px;
+    transition: width 0.8s;
+  }
+  .stat-values { display: flex; justify-content: space-between; font-size: 0.7rem; color: #b2bec3; margin-top: 2px; }
+
+  /* Manual add modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4); z-index: 100;
+    justify-content: center; align-items: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: white; border-radius: var(--radius);
+    padding: 28px; width: 90%; max-width: 360px;
+    text-align: center;
+  }
+  .modal h3 { margin-bottom: 16px; }
+  .modal input, .modal select {
+    display: block; width: 100%; padding: 12px;
+    border: 2px solid #dfe6e9; border-radius: 10px;
+    font-size: 1rem; margin-bottom: 12px; outline: none;
+  }
+  .modal input:focus, .modal select:focus { border-color: var(--secondary); }
+  .modal-btns { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+
+  .btn-outline {
+    padding: 10px 24px; border: 2px solid #dfe6e9; border-radius: 50px;
+    background: white; font-size: 0.9rem; font-weight: 600;
+    cursor: pointer; color: var(--text); transition: all 0.2s;
+  }
+  .btn-outline:hover { border-color: var(--secondary); }
+
+  /* empty state */
+  .empty-state {
+    text-align: center; padding: 40px 20px; color: #b2bec3;
+  }
+  .empty-state .emoji-big { font-size: 3rem; margin-bottom: 12px; }
+
+  /* Tab bar */
+  .tab-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: white; box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+    display: flex; z-index: 50;
+  }
+  .tab {
+    flex: 1; padding: 10px 0 12px; text-align: center;
+    font-size: 0.75rem; font-weight: 600; color: #b2bec3;
+    cursor: pointer; border: none; background: none;
+    transition: color 0.2s;
+  }
+  .tab .tab-icon { font-size: 1.3rem; display: block; margin-bottom: 2px; }
+  .tab.active { color: var(--primary); }
+
+  /* Utility */
+  .mb-8 { margin-bottom: 8px; }
+  .mb-16 { margin-bottom: 16px; }
+  .mb-24 { margin-bottom: 24px; }
+  .text-center { text-align: center; }
+  .gap-8 { gap: 8px; }
+
+  /* Bottom safe area for tab bar */
+  .screen { padding-bottom: 80px; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    background: #2d3436; color: white; padding: 12px 24px;
+    border-radius: 12px; font-size: 0.9rem; font-weight: 600;
+    z-index: 200; opacity: 0; transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  /* Compatibility section */
+  .compat-section { width: 100%; max-width: 640px; margin-bottom: 24px; }
+  .compat-select {
+    padding: 10px 16px; border: 2px solid #dfe6e9; border-radius: 10px;
+    font-size: 0.95rem; outline: none; background: white;
+    min-width: 120px;
+  }
+  .compat-select:focus { border-color: var(--secondary); }
+  .compat-result {
+    background: var(--card); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 20px; margin-top: 12px;
+    text-align: center; display: none;
+  }
+  .compat-result.active { display: block; }
+  .compat-score { font-size: 2.5rem; font-weight: 800; }
+  .compat-detail { font-size: 0.9rem; color: #636e72; line-height: 1.6; margin-top: 8px; }
+
+  @media (max-width: 380px) {
+    .scale-btn { width: 44px; height: 44px; font-size: 0.95rem; }
+    .scale-btns { gap: 8px; }
+    .q-text { font-size: 1.05rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════ Welcome Screen ════════════ -->
+<div id="welcome" class="screen active">
+  <div class="emoji-big">🐾</div>
+  <h1>우리 가족<br>동물 유형 테스트</h1>
+  <p>16가지 질문으로 알아보는<br>나의 성격 동물 캐릭터!<br><br>🕐 약 4분 소요</p>
+  <button class="btn btn-primary" onclick="startQuiz()">테스트 시작하기</button>
+  <button class="btn btn-secondary btn-small" onclick="showScreen('group')" style="margin-top:8px;">그룹 보드 바로가기</button>
+</div>
+
+<!-- ════════════ Quiz Screen ════════════ -->
+<div id="quiz" class="screen">
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="progress-text" id="progressText">1 / 16</div>
+  <div class="question-card" id="questionCard">
+    <div class="q-number" id="qNumber"></div>
+    <div class="q-text" id="qText"></div>
+    <div class="scale-labels">
+      <div class="scale-label left" id="labelLeft"></div>
+      <div class="scale-label right" id="labelRight"></div>
+    </div>
+    <div class="scale-btns" id="scaleBtns"></div>
+    <div class="scale-desc">
+      <span>매우 그렇다</span>
+      <span>보통</span>
+      <span>매우 그렇다</span>
+    </div>
+  </div>
+  <div class="nav-btns">
+    <button class="btn-outline" id="prevBtn" onclick="prevQuestion()" style="display:none;">← 이전</button>
+  </div>
+</div>
+
+<!-- ════════════ Result Screen ════════════ -->
+<div id="result" class="screen">
+  <div class="result-card">
+    <div class="animal-emoji" id="resultEmoji"></div>
+    <div class="animal-name" id="resultName"></div>
+    <div class="type-code" id="resultCode"></div>
+    <div class="animal-desc" id="resultDesc"></div>
+
+    <div id="axisBars"></div>
+  </div>
+
+  <div class="result-card name-section">
+    <p style="font-weight:700; margin-bottom:12px;">이름을 입력하고 가족 보드에 등록하세요!</p>
+    <input type="text" class="name-input" id="nameInput" placeholder="이름 입력" maxlength="10">
+    <div style="margin-top:12px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+      <button class="btn btn-primary btn-small" onclick="saveResult()">저장하기</button>
+      <button class="btn btn-secondary btn-small" onclick="saveToServer()">서버에 공유</button>
+    </div>
+    <div class="save-msg" id="saveMsg"></div>
+  </div>
+
+  <button class="btn btn-secondary btn-small" onclick="resetQuiz()">다시 테스트하기</button>
+</div>
+
+<!-- ════════════ Group Board Screen ════════════ -->
+<div id="group" class="screen">
+  <h2>🏠 가족 보드</h2>
+  <p class="subtitle">우리 가족의 동물 유형을 한눈에!</p>
+
+  <div class="board-actions">
+    <button class="btn-outline" onclick="loadFromServer()">🔄 서버에서 불러오기</button>
+    <button class="btn-outline" onclick="openAddModal()">➕ 직접 추가</button>
+    <button class="btn-outline" onclick="clearBoard()">🗑️ 초기화</button>
+  </div>
+
+  <div class="family-grid" id="familyGrid"></div>
+
+  <div class="stats-card" id="familyStats" style="display:none;">
+    <h3>📊 우리 가족 성향 분포</h3>
+    <div id="statsContent"></div>
+  </div>
+
+  <!-- Compatibility -->
+  <div class="compat-section" id="compatSection" style="display:none;">
+    <div class="stats-card">
+      <h3>💕 궁합 보기</h3>
+      <div style="display:flex; gap:8px; justify-content:center; align-items:center; flex-wrap:wrap;">
+        <select class="compat-select" id="compat1"></select>
+        <span style="font-size:1.2rem;">💕</span>
+        <select class="compat-select" id="compat2"></select>
+        <button class="btn btn-primary btn-small" onclick="showCompat()">보기</button>
+      </div>
+      <div class="compat-result" id="compatResult">
+        <div class="compat-score" id="compatScore"></div>
+        <div class="compat-detail" id="compatDetail"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ Add Member Modal ════════════ -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <h3>가족 구성원 추가</h3>
+    <input type="text" id="addName" placeholder="이름" maxlength="10">
+    <select id="addType"></select>
+    <div class="modal-btns">
+      <button class="btn-outline" onclick="closeAddModal()">취소</button>
+      <button class="btn btn-primary btn-small" onclick="addMember()">추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ Tab Bar ════════════ -->
+<div class="tab-bar">
+  <button class="tab active" onclick="showScreen('welcome')" id="tabHome">
+    <span class="tab-icon">🏠</span>홈
+  </button>
+  <button class="tab" onclick="showScreen('quiz')" id="tabQuiz">
+    <span class="tab-icon">📝</span>테스트
+  </button>
+  <button class="tab" onclick="showScreen('result')" id="tabResult">
+    <span class="tab-icon">🎉</span>결과
+  </button>
+  <button class="tab" onclick="showScreen('group')" id="tabGroup">
+    <span class="tab-icon">👨‍👩‍👧‍👦</span>가족보드
+  </button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ════════════ Config Modal ════════════ -->
+<div class="modal-overlay" id="configModal">
+  <div class="modal">
+    <h3>⚙️ 서버 설정</h3>
+    <p style="font-size:0.85rem; color:#636e72; margin-bottom:12px;">Google Apps Script 웹앱 URL을 입력하세요</p>
+    <input type="text" id="serverUrl" placeholder="https://script.google.com/macros/s/...">
+    <div class="modal-btns">
+      <button class="btn-outline" onclick="closeConfigModal()">취소</button>
+      <button class="btn btn-primary btn-small" onclick="saveConfig()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// Data
+// ══════════════════════════════════════
+
+const questions = [
+  // 축1: 에너지 I(1) vs E(5)
+  { axis: 0, text: "여행지에서 자유시간이 주어진다면?", left: "혼자 조용히 산책하고 싶다", right: "다 같이 어울려 놀고 싶다" },
+  { axis: 0, text: "처음 보는 사람과 함께하게 되면?", left: "일단 지켜보면서 천천히 다가간다", right: "먼저 말을 걸고 친해진다" },
+  { axis: 0, text: "즐거운 하루 일정이 끝나면?", left: "조용한 곳에서 혼자 쉬고 싶다", right: "다 같이 모여 밤새 수다 떨고 싶다" },
+  { axis: 0, text: "여행 사진을 찍을 때 나는?", left: "풍경이나 음식 사진 위주로 찍는다", right: "다 같이 찍는 단체사진이 좋다" },
+
+  // 축2: 스타일 P(1) vs S(5)
+  { axis: 1, text: "여행 전날 밤, 나의 모습은?", left: "짐을 미리 완벽하게 챙겨둔다", right: "아, 내일 아침에 하면 되지" },
+  { axis: 1, text: "여행지에서 밥을 먹으려면?", left: "미리 맛집을 검색하고 예약한다", right: "돌아다니다 끌리는 곳에 들어간다" },
+  { axis: 1, text: "갑자기 일정이 바뀌면?", left: "솔직히 좀 불안하고 스트레스 받는다", right: "오히려 좋아! 뭔가 새로운 일이 생길지도" },
+  { axis: 1, text: "여행 준비할 때 체크리스트는?", left: "반드시 만든다, 빠뜨리면 불안하다", right: "머릿속으로 대충, 어떻게든 되겠지" },
+
+  // 축3: 판단 F(1) vs T(5)
+  { axis: 2, text: "가족들 의견이 갈릴 때 나는?", left: "모두의 기분을 먼저 살핀다", right: "장단점을 따져서 합리적으로 정리한다" },
+  { axis: 2, text: "가족에게 선물을 고를 때?", left: "의미와 감동이 중요하다", right: "실용적이고 쓸모있는 게 최고다" },
+  { axis: 2, text: "식당에서 메뉴를 고를 때?", left: "왠지 끌리는 느낌으로 고른다", right: "리뷰와 가성비를 꼼꼼히 따진다" },
+  { axis: 2, text: "여행지를 정할 때 기준은?", left: "분위기와 감성이 좋은 곳", right: "거리, 비용, 효율을 따져서 결정" },
+
+  // 축4: 활동 A(1) vs R(5)  — 주의: 여기서는 A=활동=1, R=휴식=5
+  { axis: 3, text: "여행지에서 아침이 밝으면?", left: "일찍 일어나서 바로 탐험!", right: "늦잠이야말로 여행의 꽃" },
+  { axis: 3, text: "바다에 도착했다!  나는?", left: "바로 물에 뛰어들거나 활동 시작", right: "파라솔 아래에서 여유롭게 쉬기" },
+  { axis: 3, text: "여행 마지막 날, 어떻게 보낼까?", left: "아쉬우니까 끝까지 돌아다닌다", right: "숙소에서 느긋하게 여유를 즐긴다" },
+  { axis: 3, text: "쉬는 날이 주어진다면?", left: "뭐라도 하고 싶다, 가만히 못 있어", right: "아무것도 안 하는 게 진짜 쉬는 것" }
+];
+
+const axisNames = [
+  ["혼자 충전 (I)", "함께 충전 (E)"],
+  ["계획파 (P)", "즉흥파 (S)"],
+  ["마음으로 (F)", "머리로 (T)"],
+  ["활동파 (A)", "휴식파 (R)"]
+];
+
+const axisKeys = [
+  ["I", "E"],
+  ["P", "S"],
+  ["F", "T"],
+  ["A", "R"]
+];
+
+// 16 animal types: key = type code
+const animalTypes = {
+  "EPFA": { emoji: "🐕", name: "골든리트리버", desc: "다정한 대장! 모두를 챙기며 앞장서서 이끄는 따뜻한 리더예요. 계획도 잘 세우고, 함께 움직이는 걸 좋아하는 에너지 넘치는 타입!" },
+  "EPFR": { emoji: "🦫", name: "카피바라", desc: "따뜻하고 꼼꼼하지만, 여유를 아는 평화주의자예요. 가족 모두가 편안하게 지낼 수 있도록 조용히 챙기는 든든한 존재!" },
+  "EPTA": { emoji: "🐝", name: "꿀벌", desc: "효율적으로 움직이며 팀을 이끄는 전략가! 계획대로 착착 진행되는 걸 좋아하고, 활동적으로 목표를 달성해요." },
+  "EPTR": { emoji: "🦉", name: "부엉이", desc: "사교적이면서도 깊이 생각하는 지혜로운 조언자예요. 체계적이고 차분하게, 가족의 든든한 참모 역할을 해요." },
+  "ESFA": { emoji: "🐬", name: "돌고래", desc: "분위기 메이커! 즉흥적이고 신나게 모두에게 웃음을 주는 존재예요. 감성적이고 활발해서 함께 있으면 절대 심심하지 않아요." },
+  "ESFR": { emoji: "🐨", name: "코알라", desc: "함께 있는 것만으로 행복한 편안한 존재예요. 즉흥적이고 따뜻하지만, 급하게 움직이기보다는 여유롭게 함께하는 걸 좋아해요." },
+  "ESTA": { emoji: "🐵", name: "원숭이", desc: "호기심 대왕 모험가! 새로운 것을 발견하면 바로 달려가는 탐험 본능의 소유자예요. 영리하고 재빠르게 움직여요." },
+  "ESTR": { emoji: "🦦", name: "수달", desc: "영리하고 즉흥적이지만 물 위에 둥둥 뜨는 여유파예요. 사람들과 어울리는 걸 좋아하지만 자기만의 페이스도 중요해요." },
+  "IPFA": { emoji: "🦔", name: "고슴도치", desc: "조용하지만 따뜻한 숨은 배려왕! 계획적으로 챙길 건 다 챙기면서, 자기만의 방식으로 사랑을 표현하는 타입이에요." },
+  "IPFR": { emoji: "🐱", name: "고양이", desc: "자기만의 세계가 확실하지만 은근히 다정한 도도함의 대명사! 조용히 옆에 있어주는 것으로 마음을 표현해요." },
+  "IPTA": { emoji: "🦅", name: "매", desc: "독립적인 완벽주의자! 혼자서도 정확하고 효율적으로 목표를 이루어내요. 과묵하지만 행동으로 보여주는 실력파." },
+  "IPTR": { emoji: "🐢", name: "거북이", desc: "느리지만 꾸준히, 깊이 생각하는 지혜로운 현자예요. 차분하고 신중하게 자기만의 속도로 세상을 살아가는 철학자 타입!" },
+  "ISFA": { emoji: "🦌", name: "사슴", desc: "자유로운 영혼의 낭만파! 감성적이고 자연을 사랑하며, 순간의 아름다움을 놓치지 않는 섬세한 마음의 소유자예요." },
+  "ISFR": { emoji: "🦥", name: "나무늘보", desc: "세상에서 가장 평화로운 힐링 존재! 느긋하고 감성적이며, 있는 그대로를 즐기는 달인이에요. 함께 있으면 마음이 편해져요." },
+  "ISTA": { emoji: "🦊", name: "여우", desc: "독립적이고 영리한 자유로운 탐험가! 자기만의 방식으로 세상을 탐험하며, 남다른 통찰력으로 핵심을 꿰뚫어요." },
+  "ISTR": { emoji: "🐼", name: "판다", desc: "혼자만의 시간을 즐기며 유연하게 살아가는 철학자예요. 대나무처럼 흔들려도 부러지지 않는 단단한 내면의 소유자!" }
+};
+
+// ══════════════════════════════════════
+// State
+// ══════════════════════════════════════
+let currentQ = 0;
+let answers = new Array(16).fill(0); // 0 = unanswered
+let myResult = null;
+
+// ══════════════════════════════════════
+// Screen Management
+// ══════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const tabMap = { welcome: 'tabHome', quiz: 'tabQuiz', result: 'tabResult', group: 'tabGroup' };
+  if (tabMap[id]) document.getElementById(tabMap[id]).classList.add('active');
+  if (id === 'group') renderBoard();
+  window.scrollTo(0, 0);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ══════════════════════════════════════
+// Quiz Logic
+// ══════════════════════════════════════
+function startQuiz() {
+  currentQ = 0;
+  answers.fill(0);
+  showScreen('quiz');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = questions[currentQ];
+  document.getElementById('qNumber').textContent = `Q${currentQ + 1}`;
+  document.getElementById('qText').textContent = q.text;
+  document.getElementById('labelLeft').textContent = q.left;
+  document.getElementById('labelRight').textContent = q.right;
+  document.getElementById('progressFill').style.width = `${((currentQ) / 16) * 100}%`;
+  document.getElementById('progressText').textContent = `${currentQ + 1} / 16`;
+  document.getElementById('prevBtn').style.display = currentQ > 0 ? 'inline-block' : 'none';
+
+  const container = document.getElementById('scaleBtns');
+  container.innerHTML = '';
+  for (let i = 1; i <= 5; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'scale-btn' + (answers[currentQ] === i ? ' selected' : '');
+    btn.textContent = i;
+    btn.onclick = () => selectAnswer(i);
+    container.appendChild(btn);
+  }
+
+  // Re-trigger animation
+  const card = document.getElementById('questionCard');
+  card.style.animation = 'none';
+  card.offsetHeight;
+  card.style.animation = 'fadeIn 0.3s ease';
+}
+
+function selectAnswer(val) {
+  answers[currentQ] = val;
+  // Highlight selected
+  document.querySelectorAll('.scale-btn').forEach((btn, idx) => {
+    btn.classList.toggle('selected', idx + 1 === val);
+  });
+  // Auto-advance after short delay
+  setTimeout(() => {
+    if (currentQ < 15) {
+      currentQ++;
+      renderQuestion();
+    } else {
+      calculateResult();
+    }
+  }, 300);
+}
+
+function prevQuestion() {
+  if (currentQ > 0) { currentQ--; renderQuestion(); }
+}
+
+// ══════════════════════════════════════
+// Calculate Result
+// ══════════════════════════════════════
+function calculateResult() {
+  // Sum scores per axis
+  const axisSums = [0, 0, 0, 0];
+  const axisCounts = [0, 0, 0, 0];
+
+  questions.forEach((q, i) => {
+    if (answers[i] > 0) {
+      axisSums[q.axis] += answers[i];
+      axisCounts[q.axis]++;
+    }
+  });
+
+  // Average per axis (1-5 scale)
+  const axisAvg = axisSums.map((sum, i) => axisCounts[i] > 0 ? sum / axisCounts[i] : 3);
+
+  // Determine type code
+  // axis0: <3 → I, >=3 → E  (but exactly 3 leans left trait for axes 0,2, right for 1,3 — for fun variation)
+  let code = '';
+  for (let i = 0; i < 4; i++) {
+    // For activity axis (3), 1=Active, 5=Rest, so low=A high=R
+    // All axes: low score = first letter, high = second letter
+    code += axisAvg[i] < 3 ? axisKeys[i][0] : axisAvg[i] > 3 ? axisKeys[i][1] : axisKeys[i][0];
+  }
+
+  // Percentages: how much toward second trait (right side)
+  // 1 → 0%, 3 → 50%, 5 → 100%
+  const axisPercent = axisAvg.map(avg => Math.round(((avg - 1) / 4) * 100));
+
+  const animal = animalTypes[code];
+  myResult = { code, axisAvg, axisPercent, animal };
+
+  renderResult();
+  showScreen('result');
+}
+
+function renderResult() {
+  if (!myResult) return;
+  const { code, axisPercent, animal } = myResult;
+
+  document.getElementById('resultEmoji').textContent = animal.emoji;
+  document.getElementById('resultName').textContent = animal.name;
+  document.getElementById('resultCode').textContent = code;
+  document.getElementById('resultDesc').textContent = animal.desc;
+
+  // Axis bars
+  const barsHtml = axisNames.map((names, i) => {
+    const rightPct = axisPercent[i];
+    const leftPct = 100 - rightPct;
+    const isRight = rightPct >= 50;
+    return `
+      <div class="axis-bar">
+        <div class="axis-labels">
+          <span class="axis-label ${!isRight ? 'active-trait' : ''}">${names[0]}</span>
+          <span class="axis-label ${isRight ? 'active-trait' : ''}">${names[1]}</span>
+        </div>
+        <div class="axis-track">
+          <div class="axis-fill" style="width:${rightPct}%"></div>
+        </div>
+        <div class="axis-pct">${leftPct}% : ${rightPct}%</div>
+      </div>`;
+  }).join('');
+  document.getElementById('axisBars').innerHTML = barsHtml;
+
+  // Animate bars
+  setTimeout(() => {
+    document.querySelectorAll('.axis-fill').forEach(el => { el.style.width = el.style.width; });
+  }, 100);
+}
+
+// ══════════════════════════════════════
+// Save / Load
+// ══════════════════════════════════════
+function getMembers() {
+  try { return JSON.parse(localStorage.getItem('familyMembers') || '[]'); }
+  catch { return []; }
+}
+
+function setMembers(list) {
+  localStorage.setItem('familyMembers', JSON.stringify(list));
+}
+
+function saveResult() {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name) { showToast('이름을 입력해주세요!'); return; }
+  if (!myResult) return;
+
+  const members = getMembers();
+  const existing = members.findIndex(m => m.name === name);
+  const entry = {
+    name,
+    code: myResult.code,
+    emoji: myResult.animal.emoji,
+    animalName: myResult.animal.name,
+    axisPercent: myResult.axisPercent,
+    timestamp: new Date().toISOString()
+  };
+  if (existing >= 0) members[existing] = entry;
+  else members.push(entry);
+  setMembers(members);
+
+  document.getElementById('saveMsg').textContent = `✅ ${name}님 저장 완료!`;
+  showToast('저장되었습니다!');
+}
+
+function resetQuiz() {
+  currentQ = 0;
+  answers.fill(0);
+  myResult = null;
+  document.getElementById('nameInput').value = '';
+  document.getElementById('saveMsg').textContent = '';
+  showScreen('welcome');
+}
+
+// ══════════════════════════════════════
+// Server (Google Apps Script)
+// ══════════════════════════════════════
+function getServerUrl() {
+  return localStorage.getItem('serverUrl') || '';
+}
+
+function saveToServer() {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name) { showToast('이름을 입력해주세요!'); return; }
+  if (!myResult) return;
+
+  const url = getServerUrl();
+  if (!url) { openConfigModal(); return; }
+
+  const data = {
+    action: 'save',
+    name,
+    code: myResult.code,
+    emoji: myResult.animal.emoji,
+    animalName: myResult.animal.name,
+    axisPercent: myResult.axisPercent
+  };
+
+  showToast('서버에 저장 중...');
+
+  fetch(url, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(data)
+  }).then(() => {
+    // Also save locally
+    saveResult();
+    document.getElementById('saveMsg').textContent = `✅ ${name}님 서버 저장 완료!`;
+    showToast('서버에 저장되었습니다!');
+  }).catch(err => {
+    showToast('서버 저장 실패: ' + err.message);
+  });
+}
+
+function loadFromServer() {
+  const url = getServerUrl();
+  if (!url) { openConfigModal(); return; }
+
+  showToast('불러오는 중...');
+
+  fetch(url + '?action=load')
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.members) {
+        setMembers(data.members);
+        renderBoard();
+        showToast(`${data.members.length}명 불러왔습니다!`);
+      } else {
+        showToast('데이터가 없습니다.');
+      }
+    })
+    .catch(err => {
+      showToast('불러오기 실패: ' + err.message);
+    });
+}
+
+// Config modal
+function openConfigModal() { document.getElementById('configModal').classList.add('active'); document.getElementById('serverUrl').value = getServerUrl(); }
+function closeConfigModal() { document.getElementById('configModal').classList.remove('active'); }
+function saveConfig() {
+  const url = document.getElementById('serverUrl').value.trim();
+  localStorage.setItem('serverUrl', url);
+  closeConfigModal();
+  showToast('서버 URL 저장됨!');
+}
+
+// ══════════════════════════════════════
+// Group Board
+// ══════════════════════════════════════
+function renderBoard() {
+  const members = getMembers();
+  const grid = document.getElementById('familyGrid');
+  const stats = document.getElementById('familyStats');
+  const compat = document.getElementById('compatSection');
+
+  if (members.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
+      <div class="emoji-big">🐾</div>
+      <p>아직 등록된 가족이 없어요.<br>테스트를 하거나 직접 추가해보세요!</p>
+    </div>`;
+    stats.style.display = 'none';
+    compat.style.display = 'none';
+    return;
+  }
+
+  grid.innerHTML = members.map(m => `
+    <div class="member-card">
+      <div class="member-emoji">${m.emoji}</div>
+      <div class="member-name">${m.name}</div>
+      <div class="member-animal">${m.animalName}</div>
+      <div class="member-code">${m.code}</div>
+    </div>
+  `).join('');
+
+  // Stats
+  if (members.length >= 2) {
+    stats.style.display = 'block';
+    renderStats(members);
+    compat.style.display = 'block';
+    renderCompatSelects(members);
+  } else {
+    stats.style.display = 'none';
+    compat.style.display = 'none';
+  }
+}
+
+function renderStats(members) {
+  const validMembers = members.filter(m => m.axisPercent && m.axisPercent.length === 4);
+  if (validMembers.length === 0) { document.getElementById('familyStats').style.display = 'none'; return; }
+
+  const avgPct = [0, 0, 0, 0];
+  validMembers.forEach(m => m.axisPercent.forEach((p, i) => avgPct[i] += p));
+  avgPct.forEach((_, i) => avgPct[i] = Math.round(avgPct[i] / validMembers.length));
+
+  const html = axisNames.map((names, i) => {
+    const rightPct = avgPct[i];
+    const leftPct = 100 - rightPct;
+    return `
+      <div class="stat-row">
+        <div class="stat-label">${names[0].split('(')[0].trim()}</div>
+        <div style="flex:1;">
+          <div class="stat-track"><div class="stat-fill-right" style="width:${rightPct}%"></div></div>
+          <div class="stat-values"><span>${leftPct}%</span><span>${rightPct}%</span></div>
+        </div>
+        <div class="stat-label" style="text-align:right;">${names[1].split('(')[0].trim()}</div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('statsContent').innerHTML = html;
+}
+
+function renderCompatSelects(members) {
+  const opts = members.map((m, i) => `<option value="${i}">${m.name} ${m.emoji}</option>`).join('');
+  document.getElementById('compat1').innerHTML = opts;
+  document.getElementById('compat2').innerHTML = opts;
+  if (members.length > 1) document.getElementById('compat2').selectedIndex = 1;
+  document.getElementById('compatResult').classList.remove('active');
+}
+
+function showCompat() {
+  const members = getMembers();
+  const i1 = parseInt(document.getElementById('compat1').value);
+  const i2 = parseInt(document.getElementById('compat2').value);
+  if (i1 === i2) { showToast('다른 사람을 선택해주세요!'); return; }
+
+  const m1 = members[i1], m2 = members[i2];
+  if (!m1.axisPercent || !m2.axisPercent) { showToast('점수 데이터가 없습니다.'); return; }
+
+  // Calculate compatibility: inverse of average difference
+  let totalDiff = 0;
+  const details = [];
+  const traitWords = [
+    ["에너지 충전", "둘 다 비슷한 방식으로 에너지를 충전해요!", "에너지 충전 방식이 달라요. 서로의 시간을 존중해주세요!"],
+    ["여행 스타일", "여행 계획에 대한 생각이 비슷해요!", "한 명은 계획파, 한 명은 즉흥파! 적절한 균형을 맞춰봐요."],
+    ["판단 기준", "결정을 내리는 방식이 비슷해요!", "감성과 이성의 조합! 서로의 관점을 들으면 더 좋은 결정을 할 수 있어요."],
+    ["활동 선호", "활동 템포가 잘 맞아요!", "한 명은 활동파, 한 명은 여유파! 번갈아 리드하면 완벽한 조합!"]
+  ];
+
+  m1.axisPercent.forEach((p1, i) => {
+    const diff = Math.abs(p1 - m2.axisPercent[i]);
+    totalDiff += diff;
+    if (diff <= 25) details.push(`✅ ${traitWords[i][1]}`);
+    else details.push(`💡 ${traitWords[i][2]}`);
+  });
+
+  const score = Math.max(0, Math.round(100 - (totalDiff / 4)));
+
+  let emoji = '💕';
+  if (score >= 80) emoji = '💖';
+  else if (score >= 60) emoji = '💕';
+  else if (score >= 40) emoji = '🤝';
+  else emoji = '🌈';
+
+  document.getElementById('compatScore').textContent = `${emoji} ${score}%`;
+  document.getElementById('compatDetail').innerHTML =
+    `<strong>${m1.name}</strong> ${m1.emoji} × <strong>${m2.name}</strong> ${m2.emoji}<br><br>` +
+    details.join('<br>');
+  document.getElementById('compatResult').classList.add('active');
+}
+
+// ══════════════════════════════════════
+// Manual Add
+// ══════════════════════════════════════
+function openAddModal() {
+  document.getElementById('addModal').classList.add('active');
+  const sel = document.getElementById('addType');
+  sel.innerHTML = Object.entries(animalTypes).map(([code, a]) =>
+    `<option value="${code}">${a.emoji} ${a.name} (${code})</option>`
+  ).join('');
+  document.getElementById('addName').value = '';
+}
+
+function closeAddModal() {
+  document.getElementById('addModal').classList.remove('active');
+}
+
+function addMember() {
+  const name = document.getElementById('addName').value.trim();
+  const code = document.getElementById('addType').value;
+  if (!name) { showToast('이름을 입력해주세요!'); return; }
+
+  const animal = animalTypes[code];
+  const members = getMembers();
+  const existing = members.findIndex(m => m.name === name);
+  const entry = {
+    name,
+    code,
+    emoji: animal.emoji,
+    animalName: animal.name,
+    axisPercent: null, // Manual add doesn't have detailed scores
+    timestamp: new Date().toISOString()
+  };
+  if (existing >= 0) members[existing] = entry;
+  else members.push(entry);
+  setMembers(members);
+
+  closeAddModal();
+  renderBoard();
+  showToast(`${name}님 추가됨!`);
+}
+
+function clearBoard() {
+  if (!confirm('가족 보드를 초기화할까요?')) return;
+  setMembers([]);
+  renderBoard();
+  showToast('초기화되었습니다.');
+}
+
+// ══════════════════════════════════════
+// Init
+// ══════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  renderBoard();
+});
+</script>
+</body>
+</html>
