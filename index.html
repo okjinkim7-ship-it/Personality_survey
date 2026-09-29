@@ -359,9 +359,8 @@
   <div class="result-card name-section">
     <p style="font-weight:700; margin-bottom:12px;">이름을 입력하고 가족 보드에 등록하세요!</p>
     <input type="text" class="name-input" id="nameInput" placeholder="이름 입력" maxlength="10">
-    <div style="margin-top:12px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
-      <button class="btn btn-primary btn-small" onclick="saveResult()">저장하기</button>
-      <button class="btn btn-secondary btn-small" onclick="saveToServer()">서버에 공유</button>
+    <div style="margin-top:12px;">
+      <button class="btn btn-primary btn-small" onclick="saveToServer()">저장하기</button>
     </div>
     <div class="save-msg" id="saveMsg"></div>
   </div>
@@ -740,20 +739,23 @@ function saveToServer() {
     axisPercent: myResult.axisPercent
   };
 
-  showToast('서버에 저장 중...');
+  showToast('저장 중...');
 
+  // 로컬 저장
+  saveResult();
+
+  // 서버 저장
   fetch(url, {
     method: 'POST',
     mode: 'no-cors',
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify(data)
   }).then(() => {
-    // Also save locally
-    saveResult();
-    document.getElementById('saveMsg').textContent = `✅ ${name}님 서버 저장 완료!`;
-    showToast('서버에 저장되었습니다!');
+    document.getElementById('saveMsg').textContent = `✅ ${name}님 저장 완료!`;
+    showToast('저장되었습니다!');
   }).catch(err => {
-    showToast('서버 저장 실패: ' + err.message);
+    document.getElementById('saveMsg').textContent = `⚠️ 로컬 저장됨 (서버 연결 실패)`;
+    showToast('로컬에 저장됨 (서버 오류)');
   });
 }
 
