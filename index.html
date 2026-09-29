@@ -304,6 +304,18 @@
   .compat-score { font-size: 2.5rem; font-weight: 800; }
   .compat-detail { font-size: 0.9rem; color: #636e72; line-height: 1.6; margin-top: 8px; }
 
+  /* Awards */
+  .award-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 0; border-bottom: 1px solid #f0f0f0;
+  }
+  .award-item:last-child { border-bottom: none; }
+  .award-icon { font-size: 2rem; width: 48px; text-align: center; flex-shrink: 0; }
+  .award-info { flex: 1; }
+  .award-title { font-size: 0.8rem; color: var(--primary); font-weight: 700; }
+  .award-winner { font-size: 1.05rem; font-weight: 800; }
+  .award-reason { font-size: 0.8rem; color: #636e72; margin-top: 2px; }
+
   /* Same type group */
   .type-group { margin-bottom: 16px; }
   .type-group-header {
@@ -427,6 +439,13 @@
   </div>
 
   <div class="family-grid" id="familyGrid"></div>
+
+  <!-- 가족 어워드 -->
+  <div class="stats-card" id="awardsSection" style="display:none;">
+    <h3>🏅 가족 어워드</h3>
+    <p style="font-size:0.85rem;color:#636e72;margin-bottom:16px;">우리 가족의 특별한 타이틀!</p>
+    <div id="awardsContent"></div>
+  </div>
 
   <!-- 같은 유형 가족 묶기 -->
   <div class="stats-card" id="sameTypeSection" style="display:none;">
@@ -864,12 +883,13 @@ function renderBoard() {
   const grid = document.getElementById('familyGrid');
   const stats = document.getElementById('familyStats');
   const compat = document.getElementById('compatSection');
+  const awards = document.getElementById('awardsSection');
   const sameType = document.getElementById('sameTypeSection');
   const uniqueType = document.getElementById('uniqueTypeSection');
   const autoCompat = document.getElementById('autoCompatSection');
 
   const hideSections = () => {
-    [stats, compat, sameType, uniqueType, autoCompat].forEach(el => el.style.display = 'none');
+    [stats, compat, awards, sameType, uniqueType, autoCompat].forEach(el => el.style.display = 'none');
   };
 
   if (members.length === 0) {
@@ -891,6 +911,7 @@ function renderBoard() {
   `).join('');
 
   if (members.length >= 2) {
+    renderAwards(members);
     renderSameTypes(members);
     renderUniqueTypes(members);
     renderAutoCompat(members);
@@ -1006,6 +1027,118 @@ function showCompat() {
     `<p style="margin:8px 0;color:#636e72;">${comment}</p>` +
     `<div style="text-align:left;margin-top:12px;">${details.join('<br><br>')}</div>`;
   document.getElementById('compatResult').classList.add('active');
+}
+
+// ── 가족 어워드 ──
+function renderAwards(members) {
+  const section = document.getElementById('awardsSection');
+  const valid = members.filter(m => m.axisPercent && m.axisPercent.length === 4);
+  if (valid.length < 2) { section.style.display = 'none'; return; }
+
+  section.style.display = 'block';
+  const awardList = [];
+
+  // 축 인덱스: 0=에너지(I/E), 1=스타일(P/S), 2=판단(F/T), 3=활동(A/R)
+  // axisPercent: 높을수록 E, S, T, R
+
+  // 1. 제일 열정적인 사람 (활동 축 가장 낮은 = 가장 활동적)
+  const mostActive = [...valid].sort((a, b) => a.axisPercent[3] - b.axisPercent[3])[0];
+  awardList.push({
+    icon: "🔥",
+    title: "불꽃 열정상",
+    winner: `${mostActive.name} ${mostActive.emoji}`,
+    reason: "가만히 있으면 몸이 근질근질! 우리 가족 에너자이저 🔋 이 사람 없으면 여행이 심심해져요!"
+  });
+
+  // 2. 제일 친화적인 사람 (에너지 축 가장 높은 = 가장 E)
+  const mostSocial = [...valid].sort((a, b) => b.axisPercent[0] - a.axisPercent[0])[0];
+  awardList.push({
+    icon: "🤗",
+    title: "인간 비타민상",
+    winner: `${mostSocial.name} ${mostSocial.emoji}`,
+    reason: "옆에 있으면 자동으로 기분이 좋아지는 마법의 사람! 가족 분위기 담당 매니저 🎪"
+  });
+
+  // 3. 제일 긍정적인 사람 (즉흥 높고 + 활동 높은 = S+A 콤보)
+  const mostPositive = [...valid].sort((a, b) => {
+    const scoreA = a.axisPercent[1] + (100 - a.axisPercent[3]); // 즉흥 + 활동
+    const scoreB = b.axisPercent[1] + (100 - b.axisPercent[3]);
+    return scoreB - scoreA;
+  })[0];
+  awardList.push({
+    icon: "☀️",
+    title: "긍정왕 선샤인상",
+    winner: `${mostPositive.name} ${mostPositive.emoji}`,
+    reason: "\"어떻게든 되겠지~\" 이 한마디로 가족을 안심시키는 태양같은 존재! 걱정은 이 사람이 다 녹여줘요 🌞"
+  });
+
+  // 4. 제일 꼼꼼한 사람 (계획 축 가장 낮은 = 가장 P)
+  const mostPlanner = [...valid].sort((a, b) => a.axisPercent[1] - b.axisPercent[1])[0];
+  awardList.push({
+    icon: "📋",
+    title: "살림꾼 총무상",
+    winner: `${mostPlanner.name} ${mostPlanner.emoji}`,
+    reason: "이 사람 덕분에 가족 여행이 매끄럽게 굴러갑니다! 체크리스트의 신, 잊어버리는 거 없이 다 챙겨요 📦"
+  });
+
+  // 5. 가장 감성적인 사람 (판단 축 가장 낮은 = 가장 F)
+  const mostFeeling = [...valid].sort((a, b) => a.axisPercent[2] - b.axisPercent[2])[0];
+  awardList.push({
+    icon: "💝",
+    title: "감동 제조기상",
+    winner: `${mostFeeling.name} ${mostFeeling.emoji}`,
+    reason: "가족 사진 보다가 혼자 울컥하는 타입! 가족의 따뜻한 감성을 책임지는 감동 메이커 🥹"
+  });
+
+  // 6. 가장 쿨한 사람 (판단 축 가장 높은 = 가장 T)
+  const mostCool = [...valid].sort((a, b) => b.axisPercent[2] - a.axisPercent[2])[0];
+  awardList.push({
+    icon: "🧊",
+    title: "쿨내진동상",
+    winner: `${mostCool.name} ${mostCool.emoji}`,
+    reason: "감정에 휘둘리지 않는 냉철한 판단력! 가족 회의 때 결론을 내주는 해결사 🎯"
+  });
+
+  // 7. 베스트 커플
+  const pairs = [];
+  for (let i = 0; i < valid.length; i++) {
+    for (let j = i + 1; j < valid.length; j++) {
+      const result = calcCompatScore(valid[i], valid[j]);
+      if (result) pairs.push({ m1: valid[i], m2: valid[j], ...result });
+    }
+  }
+  if (pairs.length > 0) {
+    pairs.sort((a, b) => b.score - a.score);
+    const best = pairs[0];
+    awardList.push({
+      icon: "💕",
+      title: "베스트 궁합상",
+      winner: `${best.m1.name} ${best.m1.emoji} × ${best.m2.name} ${best.m2.emoji}`,
+      reason: `궁합 ${best.score}%! 말 안 해도 척하면 척! 우리 가족 최고의 찰떡 콤비 🥇`
+    });
+
+    // 8. 워스트 커플 (반전 매력)
+    const worst = pairs[pairs.length - 1];
+    awardList.push({
+      icon: "⚡",
+      title: "극과극 반전매력상",
+      winner: `${worst.m1.name} ${worst.m1.emoji} × ${worst.m2.name} ${worst.m2.emoji}`,
+      reason: `궁합 ${worst.score}%! 완전 다르지만 그래서 더 흥미진진! 이 둘이 만나면 예측불가 시트콤이 시작돼요 🎬`
+    });
+  }
+
+  const html = awardList.map(a => `
+    <div class="award-item">
+      <div class="award-icon">${a.icon}</div>
+      <div class="award-info">
+        <div class="award-title">${a.title}</div>
+        <div class="award-winner">${a.winner}</div>
+        <div class="award-reason">${a.reason}</div>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('awardsContent').innerHTML = html;
 }
 
 // ── 같은 유형 가족 묶기 ──
