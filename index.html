@@ -136,7 +136,7 @@
     color: white; padding: 4px 16px; border-radius: 20px;
     font-size: 0.85rem; font-weight: 700; margin-bottom: 16px;
   }
-  .animal-desc { font-size: 0.95rem; color: #636e72; line-height: 1.7; margin-bottom: 24px; }
+  .animal-desc { font-size: 0.95rem; color: #636e72; line-height: 1.7; margin-bottom: 24px; white-space: pre-line; }
 
   .axis-bar { margin-bottom: 16px; text-align: left; }
   .axis-labels { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px; }
@@ -363,6 +363,45 @@
   .rank-comment { font-size: 0.8rem; color: #636e72; margin-top: 2px; }
   .rank-score { font-weight: 800; font-size: 1.1rem; color: var(--primary); }
 
+  /* ── Member Detail Modal ── */
+  .detail-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 100;
+    justify-content: center; align-items: flex-start;
+    overflow-y: auto; padding: 32px 16px;
+  }
+  .detail-overlay.active { display: flex; }
+  .detail-modal {
+    background: white; border-radius: var(--radius);
+    padding: 32px 24px; width: 100%; max-width: 500px;
+    text-align: center; animation: fadeIn 0.3s ease;
+    position: relative;
+  }
+  .detail-close {
+    position: absolute; top: 12px; right: 16px;
+    background: none; border: none; font-size: 1.5rem;
+    cursor: pointer; color: #b2bec3; line-height: 1;
+  }
+  .detail-close:hover { color: var(--text); }
+
+  .member-card { cursor: pointer; transition: transform 0.15s; }
+  .member-card:active { transform: scale(0.96); }
+
+  .guide-section {
+    margin-top: 20px; padding-top: 20px;
+    border-top: 2px dashed #eee; text-align: left;
+  }
+  .guide-title {
+    font-size: 1rem; font-weight: 800; margin-bottom: 14px; text-align: center;
+  }
+  .guide-item {
+    display: flex; gap: 10px; margin-bottom: 12px;
+    font-size: 0.9rem; line-height: 1.5;
+  }
+  .guide-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+  .guide-text { flex: 1; color: #636e72; }
+  .guide-text strong { color: var(--text); }
+
   @media (max-width: 380px) {
     .scale-btn { width: 44px; height: 44px; font-size: 0.95rem; }
     .scale-btns { gap: 8px; }
@@ -376,7 +415,7 @@
 <div id="welcome" class="screen active">
   <div class="emoji-big">🐾</div>
   <h1>우리 가족<br>동물 유형 테스트</h1>
-  <p>16가지 질문으로 알아보는<br>나의 성격 동물 캐릭터!<br><br>🕐 약 4분 소요</p>
+  <p>20가지 질문으로 알아보는<br>나의 성격 동물 캐릭터!<br><br>🕐 약 5분 소요</p>
   <button class="btn btn-primary" onclick="startQuiz()">테스트 시작하기</button>
   <button class="btn btn-secondary btn-small" onclick="showScreen('group')" style="margin-top:8px;">그룹 보드 바로가기</button>
 </div>
@@ -384,7 +423,7 @@
 <!-- ════════════ Quiz Screen ════════════ -->
 <div id="quiz" class="screen">
   <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-  <div class="progress-text" id="progressText">1 / 16</div>
+  <div class="progress-text" id="progressText">1 / 20</div>
   <div class="question-card" id="questionCard">
     <div class="q-number" id="qNumber"></div>
     <div class="q-text" id="qText"></div>
@@ -429,7 +468,7 @@
 
 <!-- ════════════ Group Board Screen ════════════ -->
 <div id="group" class="screen">
-  <h2>🏠 가족 보드</h2>
+  <h2>🏠 김장영 패밀리 집중 탐구</h2>
   <p class="subtitle">우리 가족의 동물 유형을 한눈에!</p>
 
   <div class="board-actions">
@@ -507,8 +546,21 @@
     <span class="tab-icon">🏠</span>홈
   </button>
   <button class="tab" onclick="showScreen('group')" id="tabGroup">
-    <span class="tab-icon">👨‍👩‍👧‍👦</span>가족보드
+    <span class="tab-icon">👨‍👩‍👧‍👦</span>패밀리 탐구
   </button>
+</div>
+
+<!-- Member Detail Modal -->
+<div class="detail-overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
+  <div class="detail-modal">
+    <button class="detail-close" onclick="closeDetail()">✕</button>
+    <div class="animal-emoji" id="detailEmoji"></div>
+    <div class="animal-name" id="detailName"></div>
+    <div class="type-code" id="detailCode"></div>
+    <div class="animal-desc" id="detailDesc"></div>
+    <div id="detailBars"></div>
+    <div id="detailGuide"></div>
+  </div>
 </div>
 
 <!-- Toast -->
@@ -537,25 +589,29 @@ const questions = [
   { axis: 0, text: "여행지에서 자유시간이 주어진다면?", left: "혼자 조용히 산책하고 싶다", right: "다 같이 어울려 놀고 싶다" },
   { axis: 0, text: "처음 보는 사람과 함께하게 되면?", left: "일단 지켜보면서 천천히 다가간다", right: "먼저 말을 걸고 친해진다" },
   { axis: 0, text: "즐거운 하루 일정이 끝나면?", left: "조용한 곳에서 혼자 쉬고 싶다", right: "다 같이 모여 밤새 수다 떨고 싶다" },
-  { axis: 0, text: "여행 사진을 찍을 때 나는?", left: "풍경이나 음식 사진 위주로 찍는다", right: "다 같이 찍는 단체사진이 좋다" },
+  { axis: 0, text: "스트레스를 받았을 때 나는?", left: "혼자만의 시간으로 마음을 정리한다", right: "누군가와 이야기하면서 해소한다" },
+  { axis: 0, text: "전화가 오면 나는?", left: "문자로 대신 답하고 싶다", right: "바로 받아서 통화하는 게 편하다" },
 
   // 축2: 스타일 P(1) vs S(5)
   { axis: 1, text: "여행 전날 밤, 나의 모습은?", left: "짐을 미리 완벽하게 챙겨둔다", right: "아, 내일 아침에 하면 되지" },
   { axis: 1, text: "여행지에서 밥을 먹으려면?", left: "미리 맛집을 검색하고 예약한다", right: "돌아다니다 끌리는 곳에 들어간다" },
   { axis: 1, text: "갑자기 일정이 바뀌면?", left: "솔직히 좀 불안하고 스트레스 받는다", right: "오히려 좋아! 뭔가 새로운 일이 생길지도" },
-  { axis: 1, text: "여행 준비할 때 체크리스트는?", left: "반드시 만든다, 빠뜨리면 불안하다", right: "머릿속으로 대충, 어떻게든 되겠지" },
+  { axis: 1, text: "하루 일과를 보내는 방식은?", left: "할 일 목록을 정해놓고 순서대로 한다", right: "그때그때 하고 싶은 일을 한다" },
+  { axis: 1, text: "장보러 갈 때 나는?", left: "필요한 것을 메모해서 간다", right: "가서 보고 끌리는 걸 산다" },
 
   // 축3: 판단 F(1) vs T(5)
   { axis: 2, text: "가족들 의견이 갈릴 때 나는?", left: "모두의 기분을 먼저 살핀다", right: "장단점을 따져서 합리적으로 정리한다" },
   { axis: 2, text: "가족에게 선물을 고를 때?", left: "의미와 감동이 중요하다", right: "실용적이고 쓸모있는 게 최고다" },
-  { axis: 2, text: "식당에서 메뉴를 고를 때?", left: "왠지 끌리는 느낌으로 고른다", right: "리뷰와 가성비를 꼼꼼히 따진다" },
+  { axis: 2, text: "친구가 고민을 털어놓으면?", left: "일단 감정에 공감하고 위로한다", right: "원인을 분석하고 해결책을 제시한다" },
   { axis: 2, text: "여행지를 정할 때 기준은?", left: "분위기와 감성이 좋은 곳", right: "거리, 비용, 효율을 따져서 결정" },
+  { axis: 2, text: "감동적인 영화를 보고 나면?", left: "한동안 여운에 빠져 있는다", right: "재밌었지, 하고 금방 털어낸다" },
 
   // 축4: 활동 A(1) vs R(5)  — 주의: 여기서는 A=활동=1, R=휴식=5
   { axis: 3, text: "여행지에서 아침이 밝으면?", left: "일찍 일어나서 바로 탐험!", right: "늦잠이야말로 여행의 꽃" },
   { axis: 3, text: "바다에 도착했다!  나는?", left: "바로 물에 뛰어들거나 활동 시작", right: "파라솔 아래에서 여유롭게 쉬기" },
   { axis: 3, text: "여행 마지막 날, 어떻게 보낼까?", left: "아쉬우니까 끝까지 돌아다닌다", right: "숙소에서 느긋하게 여유를 즐긴다" },
-  { axis: 3, text: "쉬는 날이 주어진다면?", left: "뭐라도 하고 싶다, 가만히 못 있어", right: "아무것도 안 하는 게 진짜 쉬는 것" }
+  { axis: 3, text: "주말 아침에 눈을 떴을 때?", left: "바로 일어나서 하루를 시작한다", right: "이불 속에서 뒹굴거리는 게 행복하다" },
+  { axis: 3, text: "카페에 가면 나는?", left: "잠깐 들러 테이크아웃하고 다음 일정으로", right: "자리 잡고 느긋하게 오래 앉아있는다" }
 ];
 
 const axisNames = [
@@ -592,11 +648,97 @@ const animalTypes = {
   "ISTR": { emoji: "🐼", name: "판다", desc: "혼자만의 시간을 즐기며 유연하게 살아가는 철학자예요. 대나무처럼 흔들려도 부러지지 않는 단단한 내면의 소유자!" }
 };
 
+// ── 친해지기 가이드 ──
+function getRelationGuide(name, axisPercent) {
+  if (!axisPercent || axisPercent.length < 4) return '';
+
+  const tips = [];
+
+  // 에너지 축 (I/E)
+  if (axisPercent[0] < 35) {
+    tips.push({ icon: '🤫', text: `<strong>조용한 시간을 존중해주세요.</strong> ${name}님은 혼자만의 시간이 충전 방법이에요. 대화할 때는 1:1로 차분하게 다가가면 마음을 열어요.` });
+  } else if (axisPercent[0] < 50) {
+    tips.push({ icon: '☕', text: `<strong>편안한 분위기에서 다가가세요.</strong> ${name}님은 조용한 편이지만 친해지면 많은 이야기를 나눠요. 소규모 모임이나 카페에서 대화를 시작해보세요.` });
+  } else if (axisPercent[0] < 65) {
+    tips.push({ icon: '😊', text: `<strong>먼저 말을 걸어도 좋아요.</strong> ${name}님은 사교적인 편이라 자연스럽게 대화가 이어져요. 함께하는 활동을 제안해보세요.` });
+  } else {
+    tips.push({ icon: '🎉', text: `<strong>같이 어울리자고 해보세요!</strong> ${name}님은 사람들과 함께할 때 에너지가 넘쳐요. 그룹 활동이나 모임에 초대하면 정말 좋아해요.` });
+  }
+
+  // 스타일 축 (P/S)
+  if (axisPercent[1] < 35) {
+    tips.push({ icon: '📋', text: `<strong>약속은 미리 정해주세요.</strong> ${name}님은 계획적이라 갑작스러운 변경을 불편해해요. 일정을 미리 공유하면 신뢰가 쌓여요.` });
+  } else if (axisPercent[1] < 50) {
+    tips.push({ icon: '🗓️', text: `<strong>대략적인 계획만 알려줘도 OK.</strong> ${name}님은 큰 틀은 정해놓되 유연함도 있어요. 핵심 일정만 미리 공유하면 편안해해요.` });
+  } else if (axisPercent[1] < 65) {
+    tips.push({ icon: '🎲', text: `<strong>즉흥 제안도 환영이에요.</strong> ${name}님은 갑자기 "지금 나갈래?" 하는 제안에도 잘 응해요. 부담 없이 가볍게 제안해보세요.` });
+  } else {
+    tips.push({ icon: '🌊', text: `<strong>흐름에 맡겨보세요.</strong> ${name}님은 자유로운 영혼이에요. 빡빡한 계획보다는 "일단 만나서 정하자"가 더 잘 통해요.` });
+  }
+
+  // 판단 축 (F/T)
+  if (axisPercent[2] < 35) {
+    tips.push({ icon: '💝', text: `<strong>감정을 먼저 알아주세요.</strong> ${name}님은 논리보다 마음이 먼저예요. "그때 힘들었겠다" 한마디가 백 마디 조언보다 감동이에요.` });
+  } else if (axisPercent[2] < 50) {
+    tips.push({ icon: '🤝', text: `<strong>따뜻한 말 한마디가 효과적이에요.</strong> ${name}님은 감성적인 편이라 칭찬이나 응원에 큰 힘을 받아요. 진심을 담아 표현해보세요.` });
+  } else if (axisPercent[2] < 65) {
+    tips.push({ icon: '💡', text: `<strong>솔직하고 명확하게 대화하세요.</strong> ${name}님은 이성적인 편이라 돌려 말하기보다 핵심을 이야기하면 더 잘 통해요.` });
+  } else {
+    tips.push({ icon: '🎯', text: `<strong>근거와 논리로 다가가세요.</strong> ${name}님은 합리적 사고를 중시해요. 감정적 호소보다 "이렇게 하면 이런 점이 좋아"라고 설명하면 설득력 있어요.` });
+  }
+
+  // 활동 축 (A/R)
+  if (axisPercent[3] < 35) {
+    tips.push({ icon: '🏃', text: `<strong>함께 움직이는 활동을 제안하세요.</strong> ${name}님은 가만히 있으면 답답해하는 타입이에요. 산책, 운동, 나들이 등 활동적인 약속이 딱이에요.` });
+  } else if (axisPercent[3] < 50) {
+    tips.push({ icon: '🚶', text: `<strong>적당히 활동적인 만남이 좋아요.</strong> ${name}님은 움직이는 걸 좋아하지만 여유도 즐겨요. 맛집 탐방이나 가벼운 산책 코스를 추천해요.` });
+  } else if (axisPercent[3] < 65) {
+    tips.push({ icon: '🛋️', text: `<strong>편안한 만남을 선호해요.</strong> ${name}님은 여유로운 시간을 좋아해요. 카페에서 수다 떨거나 집에서 영화 보기 같은 릴렉스한 약속이 좋아요.` });
+  } else {
+    tips.push({ icon: '😴', text: `<strong>쉬는 시간을 방해하지 마세요.</strong> ${name}님은 충분한 휴식이 중요한 사람이에요. 느긋한 분위기에서 함께 쉬어주는 것만으로도 친밀감이 올라가요.` });
+  }
+
+  return tips;
+}
+
+// ── 성격 수식어 & 요약 ──
+function getModifier(axisPercent) {
+  if (!axisPercent) return '';
+  let maxDev = 0, maxIdx = 0;
+  axisPercent.forEach((pct, i) => {
+    const dev = Math.abs(pct - 50);
+    if (dev > maxDev) { maxDev = dev; maxIdx = i; }
+  });
+  if (maxDev < 8) return '균형 잡힌';
+  const mods = [
+    ['조용한', '활발한'],
+    ['꼼꼼한', '자유로운'],
+    ['감성적인', '이성적인'],
+    ['열정적인', '여유로운']
+  ];
+  return axisPercent[maxIdx] < 50 ? mods[maxIdx][0] : mods[maxIdx][1];
+}
+
+function getPersonalitySummary(axisPercent) {
+  if (!axisPercent) return '';
+  const descs = [
+    ['혼자만의 시간을 소중히 여기고', '사람들과 함께할 때 빛나고'],
+    ['계획적으로 움직이며', '즉흥적인 재미를 추구하며'],
+    ['마음으로 느끼는 것을 중시하고', '논리적 판단을 우선하고'],
+    ['적극적으로 활동하는', '여유롭게 쉬는 것을 즐기는']
+  ];
+  const deviations = axisPercent.map((pct, i) => ({ idx: i, dev: Math.abs(pct - 50), pct }));
+  deviations.sort((a, b) => b.dev - a.dev);
+  const top2 = deviations.slice(0, 2);
+  const parts = top2.map(d => d.pct < 50 ? descs[d.idx][0] : descs[d.idx][1]);
+  return parts[0] + ' ' + parts[1] + ' 타입이에요.';
+}
+
 // ══════════════════════════════════════
 // State
 // ══════════════════════════════════════
 let currentQ = 0;
-let answers = new Array(16).fill(0); // 0 = unanswered
+let answers = new Array(20).fill(0); // 0 = unanswered
 let myResult = null;
 
 // ══════════════════════════════════════
@@ -635,8 +777,8 @@ function renderQuestion() {
   document.getElementById('qText').textContent = q.text;
   document.getElementById('labelLeft').textContent = q.left;
   document.getElementById('labelRight').textContent = q.right;
-  document.getElementById('progressFill').style.width = `${((currentQ) / 16) * 100}%`;
-  document.getElementById('progressText').textContent = `${currentQ + 1} / 16`;
+  document.getElementById('progressFill').style.width = `${((currentQ) / 20) * 100}%`;
+  document.getElementById('progressText').textContent = `${currentQ + 1} / 20`;
   document.getElementById('prevBtn').style.display = currentQ > 0 ? 'inline-block' : 'none';
 
   const container = document.getElementById('scaleBtns');
@@ -664,7 +806,7 @@ function selectAnswer(val) {
   });
   // Auto-advance after short delay
   setTimeout(() => {
-    if (currentQ < 15) {
+    if (currentQ < 19) {
       currentQ++;
       renderQuestion();
     } else {
@@ -709,7 +851,9 @@ function calculateResult() {
   const axisPercent = axisAvg.map(avg => Math.round(((avg - 1) / 4) * 100));
 
   const animal = animalTypes[code];
-  myResult = { code, axisAvg, axisPercent, animal };
+  const modifier = getModifier(axisPercent);
+  const summary = getPersonalitySummary(axisPercent);
+  myResult = { code, axisAvg, axisPercent, animal, modifier, summary };
 
   renderResult();
   showScreen('result');
@@ -720,9 +864,9 @@ function renderResult() {
   const { code, axisPercent, animal } = myResult;
 
   document.getElementById('resultEmoji').textContent = animal.emoji;
-  document.getElementById('resultName').textContent = animal.name;
+  document.getElementById('resultName').textContent = myResult.modifier ? `${myResult.modifier} ${animal.name}` : animal.name;
   document.getElementById('resultCode').textContent = code;
-  document.getElementById('resultDesc').textContent = animal.desc;
+  document.getElementById('resultDesc').textContent = animal.desc + (myResult.summary ? '\n\n✨ ' + myResult.summary : '');
 
   // Axis bars
   const barsHtml = axisNames.map((names, i) => {
@@ -773,6 +917,7 @@ function saveResult() {
     code: myResult.code,
     emoji: myResult.animal.emoji,
     animalName: myResult.animal.name,
+    modifier: myResult.modifier || '',
     axisPercent: myResult.axisPercent,
     timestamp: new Date().toISOString()
   };
@@ -814,6 +959,7 @@ function saveToServer() {
     code: myResult.code,
     emoji: myResult.animal.emoji,
     animalName: myResult.animal.name,
+    modifier: myResult.modifier || '',
     axisPercent: myResult.axisPercent
   };
 
@@ -847,6 +993,12 @@ function loadFromServer() {
     .then(r => r.json())
     .then(data => {
       if (data && data.members) {
+        // modifier가 없는 멤버는 axisPercent로부터 보충
+        data.members.forEach(m => {
+          if (!m.modifier && m.axisPercent && m.axisPercent.length === 4) {
+            m.modifier = getModifier(m.axisPercent);
+          }
+        });
         setMembers(data.members);
         renderBoard();
         showToast(`${data.members.length}명 불러왔습니다!`);
@@ -895,14 +1047,26 @@ function renderBoard() {
     return;
   }
 
-  grid.innerHTML = members.map(m => `
-    <div class="member-card">
+  grid.innerHTML = members.map((m, idx) => {
+    const mod = m.modifier || (m.axisPercent ? getModifier(m.axisPercent) : '');
+    const miniBars = m.axisPercent ? m.axisPercent.map((pct, i) => {
+      const label = axisKeys[i][0] + '/' + axisKeys[i][1];
+      return `<div style="display:flex;align-items:center;gap:4px;margin-top:3px;">
+        <span style="font-size:0.6rem;color:#b2bec3;width:24px;">${label}</span>
+        <div style="flex:1;height:4px;background:#eee;border-radius:2px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--secondary),var(--primary));border-radius:2px;"></div>
+        </div>
+      </div>`;
+    }).join('') : '';
+    return `
+    <div class="member-card" onclick="showMemberDetail(${idx})">
       <div class="member-emoji">${m.emoji}</div>
       <div class="member-name">${m.name}</div>
-      <div class="member-animal">${m.animalName}</div>
+      <div class="member-animal">${mod ? mod + ' ' : ''}${m.animalName}</div>
       <div class="member-code">${m.code}</div>
-    </div>
-  `).join('');
+      ${miniBars ? `<div style="margin-top:6px;">${miniBars}</div>` : ''}
+    </div>`;
+  }).join('');
 
   if (members.length >= 2) {
     renderAwards(members);
@@ -929,14 +1093,23 @@ function renderStats(members) {
   const html = axisNames.map((names, i) => {
     const rightPct = avgPct[i];
     const leftPct = 100 - rightPct;
+    // 축별로 왼쪽/오른쪽 성향 멤버 분류
+    const leftMembers = validMembers.filter(m => m.axisPercent[i] < 50);
+    const rightMembers = validMembers.filter(m => m.axisPercent[i] >= 50);
+    const leftNames = leftMembers.map(m => m.name).join(', ') || '-';
+    const rightNames = rightMembers.map(m => m.name).join(', ') || '-';
     return `
-      <div class="stat-row">
+      <div class="stat-row" style="flex-wrap:wrap;">
         <div class="stat-label">${names[0].split('(')[0].trim()}</div>
-        <div style="flex:1;">
+        <div style="flex:1;min-width:120px;">
           <div class="stat-track"><div class="stat-fill-right" style="width:${rightPct}%"></div></div>
           <div class="stat-values"><span>${leftPct}%</span><span>${rightPct}%</span></div>
         </div>
         <div class="stat-label" style="text-align:right;">${names[1].split('(')[0].trim()}</div>
+        <div style="width:100%;display:flex;justify-content:space-between;font-size:0.75rem;color:#b2bec3;margin-top:2px;margin-bottom:8px;gap:8px;">
+          <span style="text-align:left;">👈 ${leftNames}</span>
+          <span style="text-align:right;">${rightNames} 👉</span>
+        </div>
       </div>`;
   }).join('');
 
@@ -1093,7 +1266,59 @@ function renderAwards(members) {
     reason: "감정에 휘둘리지 않는 냉철한 판단력! 가족 회의 때 결론을 내주는 해결사 🎯"
   });
 
-  // 7. 베스트 커플
+  // 7. 마음의 상처를 잘 받는 사람 (감성 높고 + 내향 높은 = F+I 콤보)
+  const mostSensitive = [...valid].sort((a, b) => {
+    const scoreA = (100 - a.axisPercent[2]) + (100 - a.axisPercent[0]); // 감성(F) + 내향(I)
+    const scoreB = (100 - b.axisPercent[2]) + (100 - b.axisPercent[0]);
+    return scoreB - scoreA;
+  })[0];
+  awardList.push({
+    icon: "🩹",
+    title: "마상 주의보상",
+    winner: `${mostSensitive.name} ${mostSensitive.emoji}`,
+    reason: "유리멘탈이 아니라 감수성이 풍부한 거예요! 말 한마디에 깊이 생각하는 섬세한 마음의 소유자 🥺 이 사람에겐 부드럽게 말해주세요!"
+  });
+
+  // 8. 꾸준히 노력하는 사람 (계획 높고 + 활동 높은 = P+A 콤보)
+  const mostPersistent = [...valid].sort((a, b) => {
+    const scoreA = (100 - a.axisPercent[1]) + (100 - a.axisPercent[3]); // 계획(P) + 활동(A)
+    const scoreB = (100 - b.axisPercent[1]) + (100 - b.axisPercent[3]);
+    return scoreB - scoreA;
+  })[0];
+  awardList.push({
+    icon: "💪",
+    title: "될놈될상",
+    winner: `${mostPersistent.name} ${mostPersistent.emoji}`,
+    reason: "될 놈은 결국 된다! 목표를 정하면 끝까지 해내는 집념의 아이콘! 계획적으로 꾸준히 실행하는 모습이 가족 모두에게 자극이 돼요 🔥"
+  });
+
+  // 9. 겨울왕국상 (가장 차가운 = T 높고 + I 높은 콤보)
+  const mostCold = [...valid].sort((a, b) => {
+    const scoreA = a.axisPercent[2] + (100 - a.axisPercent[0]); // 이성(T) + 내향(I)
+    const scoreB = b.axisPercent[2] + (100 - b.axisPercent[0]);
+    return scoreB - scoreA;
+  })[0];
+  awardList.push({
+    icon: "❄️",
+    title: "겨울왕국상",
+    winner: `${mostCold.name} ${mostCold.emoji}`,
+    reason: "Let it go~🎵 냉철한 판단력에 쿨한 포커페이스! 겉은 차가워 보여도 속은 따뜻한 반전 매력의 소유자예요 🧊"
+  });
+
+  // 10. 수도꼭지상 (가장 잘 울 것 같은 = F 높고 + E 높은 콤보)
+  const mostCrying = [...valid].sort((a, b) => {
+    const scoreA = (100 - a.axisPercent[2]) + a.axisPercent[0]; // 감성(F) + 외향(E)
+    const scoreB = (100 - b.axisPercent[2]) + b.axisPercent[0];
+    return scoreB - scoreA;
+  })[0];
+  awardList.push({
+    icon: "🚿",
+    title: "수도꼭지상",
+    winner: `${mostCrying.name} ${mostCrying.emoji}`,
+    reason: "감동 영화는 물론이고 가족 사진만 봐도 눈물샘 폭발! 풍부한 감정 표현으로 가족 모두의 마음을 울리는 감성 폭격기 😭💧"
+  });
+
+  // 11. 베스트 커플
   const pairs = [];
   for (let i = 0; i < valid.length; i++) {
     for (let j = i + 1; j < valid.length; j++) {
@@ -1237,17 +1462,17 @@ function renderAutoCompat(members) {
 
   section.style.display = 'block';
 
-  // 상위 3 + 하위 1
-  const best3 = pairs.slice(0, 3);
-  const worst1 = pairs[pairs.length - 1];
+  // 상위 5 + 하위 5
+  const best5 = pairs.slice(0, 5);
+  const worst3 = pairs.slice(-3).reverse();
 
-  let html = '<p style="font-size:0.85rem;color:#636e72;margin-bottom:12px;">우리 가족 궁합 TOP 3와 반전 매력 조합!</p>';
+  let html = '<p style="font-size:0.85rem;color:#636e72;margin-bottom:12px;">우리 가족 궁합 TOP 5와 반전 매력 TOP 3!</p>';
 
-  best3.forEach((p, idx) => {
+  best5.forEach((p, idx) => {
     const [title] = getOverallComment(p.score);
     html += `
       <div class="compat-rank-item">
-        <div class="rank-badge rank-${idx + 1}">${idx + 1}</div>
+        <div class="rank-badge rank-${idx < 3 ? idx + 1 : 'best'}">${idx + 1}</div>
         <div class="rank-info">
           <div class="rank-names">${p.m1.name} ${p.m1.emoji} × ${p.m2.name} ${p.m2.emoji}</div>
           <div class="rank-comment">${title}</div>
@@ -1256,23 +1481,87 @@ function renderAutoCompat(members) {
       </div>`;
   });
 
-  // 워스트 (반전 매력)
-  if (worst1 && worst1 !== best3[best3.length - 1]) {
+  // 반전 매력 TOP 5
+  const uniqueWorst = worst3.filter(w => !best5.includes(w));
+  if (uniqueWorst.length > 0) {
     html += `
       <div style="margin-top:16px;padding-top:12px;border-top:2px dashed #dfe6e9;">
-        <p style="font-size:0.9rem;font-weight:700;margin-bottom:8px;">🌈 반전 매력 조합</p>
+        <p style="font-size:0.9rem;font-weight:700;margin-bottom:8px;">🌈 반전 매력 TOP ${uniqueWorst.length}</p>`;
+    uniqueWorst.forEach((p, idx) => {
+      html += `
         <div class="compat-rank-item">
-          <div class="rank-badge rank-worst">!</div>
+          <div class="rank-badge rank-worst">${idx + 1}</div>
           <div class="rank-info">
-            <div class="rank-names">${worst1.m1.name} ${worst1.m1.emoji} × ${worst1.m2.name} ${worst1.m2.emoji}</div>
-            <div class="rank-comment">극과 극은 통한다! 가장 다른 만큼 서로에게 가장 많이 배울 수 있는 조합 ⚡</div>
+            <div class="rank-names">${p.m1.name} ${p.m1.emoji} × ${p.m2.name} ${p.m2.emoji}</div>
+            <div class="rank-comment">극과 극은 통한다! 다른 만큼 서로에게 배울 점이 많은 조합 ⚡</div>
           </div>
-          <div class="rank-score">${worst1.score}%</div>
-        </div>
-      </div>`;
+          <div class="rank-score">${p.score}%</div>
+        </div>`;
+    });
+    html += `</div>`;
   }
 
   document.getElementById('autoCompatContent').innerHTML = html;
+}
+
+// ══════════════════════════════════════
+// Member Detail Modal
+// ══════════════════════════════════════
+function showMemberDetail(idx) {
+  const members = getMembers();
+  const m = members[idx];
+  if (!m) return;
+
+  const animal = animalTypes[m.code];
+  const mod = m.modifier || (m.axisPercent ? getModifier(m.axisPercent) : '');
+  const summary = m.axisPercent ? getPersonalitySummary(m.axisPercent) : '';
+
+  document.getElementById('detailEmoji').textContent = animal.emoji;
+  document.getElementById('detailName').textContent = (mod ? mod + ' ' : '') + animal.name;
+  document.getElementById('detailCode').textContent = m.code;
+  document.getElementById('detailDesc').textContent = animal.desc + (summary ? '\n\n✨ ' + m.name + '님은 ' + summary : '');
+
+  if (m.axisPercent && m.axisPercent.length === 4) {
+    const barsHtml = axisNames.map((names, i) => {
+      const rightPct = m.axisPercent[i];
+      const leftPct = 100 - rightPct;
+      const isRight = rightPct >= 50;
+      return `
+        <div class="axis-bar">
+          <div class="axis-labels">
+            <span class="axis-label ${!isRight ? 'active-trait' : ''}">${names[0]}</span>
+            <span class="axis-label ${isRight ? 'active-trait' : ''}">${names[1]}</span>
+          </div>
+          <div class="axis-track">
+            <div class="axis-fill" style="width:${rightPct}%"></div>
+          </div>
+          <div class="axis-pct">${leftPct}% : ${rightPct}%</div>
+        </div>`;
+    }).join('');
+    document.getElementById('detailBars').innerHTML = barsHtml;
+
+    // 친해지기 가이드
+    const tips = getRelationGuide(m.name, m.axisPercent);
+    const guideHtml = `
+      <div class="guide-section">
+        <div class="guide-title">💛 ${m.name}님과 친해지는 법</div>
+        ${tips.map(t => `
+          <div class="guide-item">
+            <div class="guide-icon">${t.icon}</div>
+            <div class="guide-text">${t.text}</div>
+          </div>`).join('')}
+      </div>`;
+    document.getElementById('detailGuide').innerHTML = guideHtml;
+  } else {
+    document.getElementById('detailBars').innerHTML = '<p style="font-size:0.85rem;color:#b2bec3;margin-top:12px;">직접 추가된 멤버는 상세 성향 데이터가 없습니다.</p>';
+    document.getElementById('detailGuide').innerHTML = '';
+  }
+
+  document.getElementById('detailOverlay').classList.add('active');
+}
+
+function closeDetail() {
+  document.getElementById('detailOverlay').classList.remove('active');
 }
 
 // ══════════════════════════════════════
